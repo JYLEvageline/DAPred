@@ -76,7 +76,7 @@ class BiRNN(nn.Module):
         mask_long_valid_expand = mask_long_valid.view(-1, 1).expand_as(output_linear)
         return output_linear.masked_select(mask_long_valid_expand).view(-1, self.hidden_dim) #delete zero(considering return all the output)
 
-    def forward(self, uids, vids_long, len_long, vids_short_al, len_short_al, tids_next, short_cnt, mask_long, mask_optim, mask_evaluate):
+    def forward(self, vids_long, len_long, vids_short_al, len_short_al, tids_next, short_cnt, mask_long, mask_optim, mask_evaluate):
         mask_long_valid = mask_long.index_select(1, Variable(torch.LongTensor(xrange(torch.max(len_long).data[0])))) # is mask_long? get which is valid here
         mask_optim_valid = (mask_optim if len(mask_evaluate) == 0 else mask_evaluate).index_select(1, Variable(torch.LongTensor(xrange(torch.max(len_long).data[0])))).masked_select(mask_long_valid)
         #mask_optim_valid = mask_optim.masked_select(mask_long_valid)

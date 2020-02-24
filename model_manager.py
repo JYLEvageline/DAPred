@@ -6,12 +6,6 @@ from evaluator import Evaluator
 from birnnt import BiRNNT
 #from SERM import SERM
 from STRNN import STRNN
-from NCF import NCF
-from eNCF import eNCF
-from DSSM import DSSM
-from eDSSM import eDSSM
-from eJNTM import eJNTM
-
 
 class ModelManager:
     def __init__(self, opt):
@@ -28,17 +22,6 @@ class ModelManager:
             #return SERM(u_size, v_size, t_size, w_size)
         elif model_type == 'strnn':
             return STRNN(u_size, v_size)
-        elif model_type == 'NCF':
-            return NCF(v_size, t_size, u_size,self.opt['emb_dim_v'], self.opt['emb_dim_t'],self.opt['emb_dim_u'],self.opt['hidden_dim'])
-        elif model_type == 'eNCF':
-            return eNCF(v_size, t_size, u_size, self.opt['emb_dim_v'], self.opt['emb_dim_t'], self.opt['emb_dim_u'], self.opt['hidden_dim'])
-        elif model_type == 'DSSM':
-            return DSSM(v_size, t_size, u_size, self.opt['emb_dim_v'], self.opt['emb_dim_t'], self.opt['emb_dim_u'], self.opt['hidden_dim'])
-        elif model_type == 'eDSSM':
-            return eDSSM(v_size, t_size, u_size, self.opt['emb_dim_v'], self.opt['emb_dim_t'],self.opt['emb_dim_u'],self.opt['hidden_dim'])
-        elif model_type == 'eJNTM':
-            return eJNTM(v_size, t_size, u_size, self.opt['emb_dim_v'], self.opt['emb_dim_t'],self.opt['emb_dim_u'],self.opt['hidden_dim'])
-
 
 
     def build_model(self, model_type, dataset):

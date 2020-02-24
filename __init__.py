@@ -8,7 +8,7 @@ if __name__ == "__main__":
     #hidden_dim = int(input('please input hidden_dim: 8 16 32 64 etc'))
     torch.manual_seed(3)
     root_path = '/Users/quanyuan/Dropbox/Research/LocationCuda/' if os.path.exists('/Users/quanyuan/Dropbox/Research/LocationCuda/') else 'LocationCuda/'
-    dataset_name = 'LA'
+    dataset_name = 'gowalla'
     path = root_path + 'small/' + dataset_name + '/'
     opt = {'path': path,
            'u_vocab_file': path+ 'u.txt',
@@ -35,7 +35,6 @@ if __name__ == "__main__":
            'dropout': 0.5,
            'epoch': 80
            }
-    print(dataset_name)
     dataset = DataSet(opt)
     manager = ModelManager(opt)
     model_type = 'birnnt'

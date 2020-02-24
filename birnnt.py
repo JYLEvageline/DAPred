@@ -54,7 +54,7 @@ class BiRNNT(BiRNN):
 
     def get_d_all(self,uids, vids_long, len_long, vids_short_al, len_short_al, tids_next, short_cnt, mask_long, mask_optim, mask_evaluate,feature_al): #jiayi
         n = 0
-        atten_scores = Variable(torch.zeros((1, max(len_long))))
+        atten_scores = Variable(torch.zeros((sum(len_long)-len(len_long),max(len_long))))
         scores_d = np.zeros((sum(len_long)-len(len_long),self.nb_cnt)) #just a try
         m = max(len_long)
         delete_idx = []
@@ -65,10 +65,7 @@ class BiRNNT(BiRNN):
             #      n += (length - 1)
             #      delete_idx.append(idx)
             #      continue
-            if length == 406:
-                print(1)
             feature_temp = torch.mm(feature_al[n + 1: n + length], feature_al[n:n + length].t())  # all the feature part for every userdist
-            print(idx)
             #dist_temp = Variable(torch.zeros((length-1,length)))
             for i in range(length-1): # the vids of every user
                 for j in range(length): # single vid
@@ -78,43 +75,34 @@ class BiRNNT(BiRNN):
                     '''
                     dist_temp = self.get_distance(vids_long[idx][i], vids_long[idx][j]) # for this I directly delete 3555
                     try:
-                        atten_scores[0, j] = self.att_merger(torch.cat((feature_temp[i, j:j + 1], torch.FloatTensor([dist_temp]))))
+                        atten_scores[n + i, j] = self.att_merger(torch.cat((feature_temp[i, j:j + 1], torch.FloatTensor([dist_temp]))))
                     except:
                         print('bug atten score')
-                atten_scores[0,i+1] = float('-inf')
-                atten_scores[0,0:j+1] = F.softmax(atten_scores[0,0:j+1]) #atten_scores inf solved
+                atten_scores[n+i,i+1] = float('-inf')
+                atten_scores[n+i,0:j+1] = F.softmax(atten_scores[n+i,0:j+1]) #atten_scores inf solved
                 #in LP3 everything is based on vid candidate size but LP4 is not!
                 #score_d for the candidate of every vid
                 vid_candidates = self.get_vids_candidate(int(vids_long[idx][i]),int(vids_long[idx][i+1]))
                 vid_candidates_all.append(vid_candidates)
-                #dist = np.zeros((len(vid_candidates), length))
-                dist = np.zeros((1, length))
-                temp_atten = atten_scores[0, 0:length]
+                dist = np.zeros((len(vid_candidates), length))
                 for j, vid_candidate in enumerate(vid_candidates):
                     for k in range(length):
-                        #dist[j][k] = float(np.exp(-self.get_distance(vid_candidates[j], vids_long[idx][k])))
-                        dist[0][k] = float(np.exp(-self.get_distance(vid_candidates[j], vids_long[idx][k])))
-                 #idx 49 i = 3
-                # try:
-                #     scores_d[n + i] = np.dot(dist , temp_atten.data.numpy().T)
-                # except:
-                #     temp_atten = atten_scores[n+i,0:length][0]
-                #     scores_d[n + i] = np.dot(dist, temp_atten.data.numpy().T)
-                    try:
-                        scores_d[n + i,j] = np.dot(dist , temp_atten.data.numpy().T)
-                    except:
-                        temp_atten = atten_scores[0,0:length][0]
-                        scores_d[n + i,j] = np.dot(dist, temp_atten.data.numpy().T)
+                        dist[j][k] = float(np.exp(-self.get_distance(vid_candidates[j], vids_long[idx][k])))
+                temp_atten = atten_scores[n + i, 0:length] #idx 49 i = 3
+                try:
+                    scores_d[n + i] = np.dot(dist , temp_atten.data.numpy().T)
+                except:
+                    temp_atten = atten_scores[n+i,0:length][0]
+                    scores_d[n + i] = np.dot(dist, temp_atten.data.numpy().T)
 
 
             n+=(length-1)
 
         #gc.set_debug(gc.DEBUG_LEAK)
         #scores_d = np.delete(scores_d,delete_idx,0)
-        # del(atten_scores)
-        # del(dist)
-        # gc.collect()
-        # print(1)
+        del(atten_scores)
+        del(dist)
+        gc.collect()
         return Variable(torch.from_numpy(scores_d)).float(),delete_idx,vid_candidates_all
 
     def get_vids_candidate(self,vid_current,vid_next):
@@ -135,7 +123,7 @@ class BiRNNT(BiRNN):
 
     def forward(self, uids, vids_long, len_long, vids_short_al, len_short_al, tids_next, short_cnt, mask_long, mask_optim, mask_evaluate):
         mask_long_valid = mask_long.index_select(1, Variable(torch.LongTensor(range(torch.max(len_long).data[0]))))
-        #mask_optim_valid = (mask_optim if len(mask_evaluate) == 0 else mask_evaluate).index_select(1, Variable(torch.LongTensor(xrange(torch.max(len_long).data[0])))).masked_select(mask_long_valid)
+        mask_optim_valid = (mask_optim if len(mask_evaluate) == 0 else mask_evaluate).index_select(1, Variable(torch.LongTensor(xrange(torch.max(len_long).data[0])))).masked_select(mask_long_valid)
         embeddings_t = self.get_embedding_t(tids_next, len_long, mask_long_valid)
         embeddings_u = self.get_embeddeing_u(uids, len_long, mask_long_valid)
         hiddens_long = self.get_hiddens_long(vids_long, len_long, mask_long_valid)
@@ -149,13 +137,17 @@ class BiRNNT(BiRNN):
             if l < lm:
                     mask_long_valid_d[idx][l] = 0
         mask_optim_valid_d = (mask_optim if len(mask_evaluate) == 0 else mask_evaluate).index_select(1, Variable(torch.LongTensor(xrange(torch.max(len_long_d).data[0])))).masked_select(mask_long_valid_d)
+        #d_score = self.get_scores_d_all(vids_long, len_long, mask_long_valid) #old one delete
+        #d scoreself.vid_coor_nor[vids_long[idx][j-1]]
         print("begin d")
         d,delete_long,vid_candidates_all = self.get_d_all(uids, vids_long, len_long, vids_short_al, len_short_al, tids_next, short_cnt, mask_long,mask_optim, mask_evaluate, feature_al)
         #gc.set_debug(gc.DEBUG_LEAK)
         print("end d")
         #delete
         idx_delete = np.cumsum(len_long)-1 #last idx to delete
-        '''
+
+        # idx = np.delete(range(len(hiddens_long)),idx_delete)#idx to keep
+        # idx = torch.LongTensor(np.delete(idx,delete_long))
         idx = torch.LongTensor(np.delete(range(len(hiddens_long)),idx_delete)) #idx to keep (in case
         embeddings_t_delete = torch.index_select(embeddings_t,0,idx)
         embeddings_u_delete = torch.index_select(embeddings_u,0, idx)
@@ -166,18 +158,6 @@ class BiRNNT(BiRNN):
         scores_u = self.decoder_u(embeddings_u_delete, Variable(torch.LongTensor(vid_candidates_all)))
         scores_hl = self.decoder_hl(hiddens_long_delete,Variable(torch.LongTensor(vid_candidates_all)))
         scores_hs = self.decoder_hs(hiddens_short_delete,Variable(torch.LongTensor(vid_candidates_all)))
-        '''
-        #gc solution
-        idx = torch.LongTensor(np.delete(range(len(hiddens_long)), idx_delete))  # idx to keep (in case
-        embeddings_t = torch.index_select(embeddings_t, 0, idx)
-        embeddings_u = torch.index_select(embeddings_u, 0, idx)
-        hiddens_long = torch.index_select(hiddens_long, 0, idx)
-        hiddens_short = torch.index_select(hiddens_short, 0, idx)
-        # other with candidate
-        scores_t = self.decoder_t(embeddings_t, Variable(torch.LongTensor(vid_candidates_all)))
-        scores_u = self.decoder_u(embeddings_u, Variable(torch.LongTensor(vid_candidates_all)))
-        scores_hl = self.decoder_hl(hiddens_long, Variable(torch.LongTensor(vid_candidates_all)))
-        scores_hs = self.decoder_hs(hiddens_short, Variable(torch.LongTensor(vid_candidates_all)))
 
         #combine
         #hiddens_comb = torch.cat((hiddens_long, hiddens_short, embeddings_t,embeddings_u,d), 1)
@@ -185,37 +165,22 @@ class BiRNNT(BiRNN):
         #predicted_scores = F.sigmoid(F.linear(new_comb, F.relu(self.merger_weight), bias=None).t())
         predicted_scores = Variable(torch.zeros(len(idx), self.nb_cnt))
         for i in range(len(idx)):
-            predicted_scores[i] = F.sigmoid(F.linear(new_comb[i].t(), self.merger_weight, bias=None).t())
-            print(F.linear)
+            predicted_scores[i] = F.sigmoid(F.linear(new_comb[i].t(), F.relu(self.merger_weight), bias=None).t())
 
-        #hiddens_comb2 = torch.cat((hiddens_long_delete, hiddens_short_delete, embeddings_t_delete,embeddings_u_delete,d), 1) #jiayi
+        hiddens_comb2 = torch.cat((hiddens_long_delete, hiddens_short_delete, embeddings_t_delete,embeddings_u_delete,d), 1) #jiayi
         #bug mask jiayi 1111
-        #mask_optim_expanded2 = mask_optim_valid_d.view(-1, 1).expand_as(hiddens_comb2)
-        #hiddens_comb_masked2 = hiddens_comb2.masked_select(mask_optim_expanded2).view(-1, self.decoder_dim) #decoder_dim connect to every maxlen_long? jiayi
+        mask_optim_expanded2 = mask_optim_valid_d.view(-1, 1).expand_as(hiddens_comb2)
+        hiddens_comb_masked2 = hiddens_comb2.masked_select(mask_optim_expanded2).view(-1, self.decoder_dim) #decoder_dim connect to every maxlen_long? jiayi
         #That's why they set vid_candidates, to unify the length
-        #decoded = self.decoder(hiddens_comb_masked2)
+        decoded = self.decoder(hiddens_comb_masked2)
         #jiayi waiting111 linear (decoded= score_utdh_comb, need a linear to make it score and combine)
 
 
         mask_optim_expanded = mask_optim_valid_d.view(-1, 1).expand_as(predicted_scores)
         hiddens_comb_masked = predicted_scores.masked_select(mask_optim_expanded).view(-1, self.nb_cnt) #decoder_dim connect to every maxlen_long? jiayi
-        vid_candidates_masked = Variable(torch.LongTensor(vid_candidates_all)).masked_select(mask_optim_expanded).view(
-            -1, self.nb_cnt)
-        #decoded2 = self.decoder2(hiddens_comb_masked)
-
-        #a,ab = decoded.sort(1,descending = True)
-        #c,cd = decoded2.sort(1,descending = True)
-        #return predicted_scores,decoded,decoded2  # return scores_merge instead
-        #return decoded2 #jiayi
-        # del(feature_al)
-        # del(scores_t)
-        # del(scores_u)
-        # del(scores_hs)
-        # del(scores_hl)
-        # del(new_comb)
-        # del(predicted_scores)
-        # gc.collect()
-        return hiddens_comb_masked,vid_candidates_masked
+        decoded2 = self.decoder2(hiddens_comb_masked)
+        
+        return predicted_scores,decoded,decoded2
 
 
 

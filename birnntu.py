@@ -7,6 +7,7 @@ from torch.autograd import Variable
 use_cuda = torch.cuda.is_available()
 # use_cuda = False
 
+#记错了
 class BiRNNTU(BiRNN):
     def __init__(self, v_size, t_size, emb_dim_v, emb_dim_t, hidden_dim):
         super(BiRNNT, self).__init__(v_size, emb_dim_v, hidden_dim)

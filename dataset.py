@@ -18,28 +18,24 @@ class CheckinData(Dataset):
         while i < len(lines):
             # read userid, #session
             uid, cnt, test_idx = map(int, lines[i].split(','))
+            self.uid_test_idx.append(test_idx)
             i += 1
             # read whole trajectory
-            if len(np.fromstring(lines[i], dtype=np.int32, sep=',')) < 350:
-                self.uid_test_idx.append(test_idx)
-                self.uid_vids_long.append(np.fromstring(lines[i], dtype=np.int32, sep=',') + id_offset)
-                i += 1
-                # read sessions
-                vids_short_al = []
-                for j in xrange(cnt):
-                    vids_short_al.append(np.fromstring(lines[i + j], dtype=np.int32, sep=',') + id_offset)
-                self.uid_vids_short_al.append(vids_short_al)
-                i += cnt
-                # self.uid_tids.append(map(int, lines[i].split(',')))
-                self.uid_tids.append(np.fromstring(lines[i], dtype=np.int32, sep=',') + id_offset)
-                i += 1
-                self.uid_vids_next.append(np.fromstring(lines[i], dtype=np.int32, sep=',') + id_offset)
-                i += 1
-                self.uid_tids_next.append(np.fromstring(lines[i], dtype=np.int32, sep=',') + id_offset)
-                i += 1
-            else:
-                i += 4
-                i += cnt
+            self.uid_vids_long.append(np.fromstring(lines[i], dtype=np.int32, sep=',') + id_offset)
+            i += 1
+            # read sessions
+            vids_short_al = []
+            for j in xrange(cnt):
+                vids_short_al.append(np.fromstring(lines[i + j], dtype=np.int32, sep=',') + id_offset)
+            self.uid_vids_short_al.append(vids_short_al)
+            i += cnt
+            # self.uid_tids.append(map(int, lines[i].split(',')))
+            self.uid_tids.append(np.fromstring(lines[i], dtype=np.int32, sep=',') + id_offset)
+            i += 1
+            self.uid_vids_next.append(np.fromstring(lines[i], dtype=np.int32, sep=',') + id_offset)
+            i += 1
+            self.uid_tids_next.append(np.fromstring(lines[i], dtype=np.int32, sep=',') + id_offset)
+            i += 1
         self.max_long_len, self.max_short_len, self.max_session_len = self.get_max_len()
 
     def get_max_len(self):

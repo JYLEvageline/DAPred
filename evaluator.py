@@ -21,30 +21,29 @@ class Evaluator:
             print("batch",str(idx))
             uids, vids_long, len_long, vids_short_al, len_short_al, tids_next, short_cnt, mask_long, vids_next, mask_optim, mask_evaluate = self.convert_to_variable(
                 data_batch)
-            hiddens_comb_masked, vid_candidates_masked = self.model(uids, vids_long, len_long, vids_short_al,
-                                                                    len_short_al, tids_next, short_cnt, mask_long,
-                                                                    mask_optim, mask_evaluate)
-            hits_batch = self.get_hits(hiddens_comb_masked, vid_candidates_masked, vids_next)
+            predicted_scores, decoded,outputs = self.model(uids, vids_long, len_long, vids_short_al, len_short_al, tids_next, short_cnt, mask_long,
+                                 mask_optim, mask_evaluate)
+            hits_batch = self.get_hits(outputs, vids_next)
             hits += hits_batch
-            cnt += hiddens_comb_masked.size(0)
-            print(hits/cnt)
+            cnt += outputs.size(0)
         hits /= cnt
         print hits
         return hits
 
-    def get_hits(self,hiddens_comb_masked, vid_candidates_masked, vids_next):
+    def get_hits(self, outputs, ground_truths):
         hits = np.zeros(3)
-        for idx in range(len(vid_candidates_masked)):
-            probs_sorted, vid_sorted = torch.sort(hiddens_comb_masked[idx].view(-1), 0, descending=True)
-            vid_ranked = [vid_candidates_masked[idx][id] for id in vid_sorted.data]
-            for j in range(min(len(vid_ranked), 10)):
-                if vids_next[idx] == vid_ranked[j]:
-                    if j == 0:
+        _, vids_sorted = outputs.sort(1, descending=True)
+        for idx in xrange(vids_sorted.size(0)):
+            for top_k in xrange(min(vids_sorted.size(1), 10)):
+                # print '\t', ground_truths.data[idx], vids_sorted.data[idx, top_k]
+                if ground_truths.data[idx] == vids_sorted.data[idx, top_k]:
+                    if top_k == 0:
                         hits[0] += 1
-                    if j < 5:
+                    if top_k < 5:
                         hits[1] += 1
-                    if j < 10:
+                    if top_k < 10:
                         hits[2] += 1
+                    break
         return hits
 
     def convert_to_variable(self, data_batch):

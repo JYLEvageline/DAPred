@@ -90,11 +90,11 @@ with open('filename.pickle', 'rb') as handle:
 
 print(your_data == unserialized_data)
 '''
-
-
-for i in range(5):
-    print(i)
-    for j in range(4):
-        if j == 2:
-            continue
-        print(j)
+a = np.zeros((6,4))
+a[0,0] = 1
+a[1,0] = 2
+a[2,0] = 3
+idx = [1,2]
+print(a)
+b = np.delete(a,idx,0)
+print(b)

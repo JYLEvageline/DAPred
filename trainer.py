@@ -3,7 +3,6 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 from torch.autograd import Variable
-import Loss
 use_cuda = torch.cuda.is_available()
 # use_cuda = False
 
@@ -16,8 +15,7 @@ class Trainer:
         self.model_type = model_type
         self.save_gap = opt['save_gap']
         self.model = model
-        self.criterion = nn.NLLLoss() #  jiayi
-        self.criterion = Loss.NSNLLLoss()
+        self.criterion = nn.NLLLoss()
         self.optimizer = optim.Adam(self.model.parameters())
 
     def train(self, train_data, model_manager):
@@ -38,10 +36,9 @@ class Trainer:
             print(str(i)+"batch")
             self.optimizer.zero_grad()
             uids,vids_long, len_long, vids_short_al, len_short_al, tids_next, short_cnt, mask_long, vids_next, mask_optim, mask_evaluate = self.convert_to_variable(data_batch)
-            #outputs,decoded,decoded2 = self.model(uids,vids_long, len_long, vids_short_al, len_short_al, tids_next, short_cnt, mask_long, mask_optim, mask_evaluate)
-            hiddens_comb_masked, vid_candidates_masked2 = self.model(uids,vids_long, len_long, vids_short_al, len_short_al, tids_next, short_cnt, mask_long, mask_optim, mask_evaluate)
+            outputs,decoded,decoded2 = self.model(uids,vids_long, len_long, vids_short_al, len_short_al, tids_next, short_cnt, mask_long, mask_optim, mask_evaluate)
             #loss = self.criterion(outputs, vids_next) #jiayi111
-            loss = self.criterion(hiddens_comb_masked)
+            loss = self.criterion(decoded2,vids_next)
             loss.backward()
             self.optimizer.step()
             total_loss += loss.data[0]
